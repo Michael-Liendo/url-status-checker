@@ -1,10 +1,7 @@
-use regex::Regex;
-use std::{
-    fs,
-    io::{BufWriter, Write},
-};
-
 use clap::Parser;
+use regex::Regex;
+use std::fs;
+use std::io::{BufWriter, Write};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
