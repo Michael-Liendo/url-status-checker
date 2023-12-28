@@ -1,56 +1,57 @@
 use clap::Parser;
 use regex::Regex;
+use reqwest::StatusCode;
 use std::fs;
 use std::io::{BufWriter, Write};
+use std::path::PathBuf;
 
+/// cleans URLs from an input file and verifies their status codes. Cleaned URLs and their status codes are stored in an output file.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Route of file with the urls to filter
+    /// File containing the URLs to clean and verify.
     #[arg(short, long)]
     file: String,
 
-    /// Route of the output file with correct urls
+    /// Output file where valid URLs and their status codes will be saved.
     #[arg(short, long, default_value_t = String::from("correct_urls_output.txt"))]
     output_file: String,
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    let mut count = 0;
+    let input_file_path = PathBuf::from(&args.file);
+    let output_file_path = PathBuf::from(&args.output_file);
 
-    let file_text = fs::read_to_string(args.file).unwrap();
+    let file_text = fs::read_to_string(&input_file_path)?;
 
-    let text_vector: Vec<&str> = file_text.split('\n').collect();
-
-    let output_file = fs::OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open(&args.output_file)
-        .unwrap();
-
-    let mut writer = BufWriter::new(output_file);
-
-    let links_vector: Vec<&&str> = text_vector
-        .iter()
+    let valid_urls: Vec<&str> = file_text
+        .split('\n')
         .filter(|&text| is_valid_url(text))
         .collect();
 
-    for url in links_vector {
-        if let Ok(message) = checker((*url).to_string()).await {
-            writer
-                .write_all(format!("{message} \n").as_bytes())
-                .unwrap();
+    let mut writer = BufWriter::new(
+        fs::OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(&output_file_path)?,
+    );
 
-            count += 1;
-        }
+    let mut count = 0;
+
+    for url in valid_urls {
+        let message = checker(url).await?;
+        writer.write_all(format!("{message} \n").as_bytes())?;
+        count += 1;
     }
 
-    let _ = writer.flush();
+    writer.flush()?;
 
-    println!("It is ready, total of correct urls: {count}");
-    println!("Open file in {}", args.output_file);
+    println!("It is ready, total of correct URLs: {count}");
+    println!("Open file in {}", output_file_path.display());
+
+    Ok(())
 }
 
 fn is_valid_url(text: &str) -> bool {
@@ -58,15 +59,17 @@ fn is_valid_url(text: &str) -> bool {
     url_regex.is_match(text)
 }
 
-async fn checker(url: String) -> Result<String, String> {
-    let response = reqwest::get(&url).await.unwrap();
+async fn checker(url: &str) -> Result<String, String> {
+    let response = reqwest::get(url).await.map_err(|err| err.to_string())?;
     let status_code = response.status();
 
-    if status_code == 200 || status_code == 301 {
-        Ok(format!("{url} (Ok)"))
-    } else if status_code == 301 || status_code == 300 {
-        Ok(format!("{url} (Redirect)"))
-    } else {
-        Err(String::from("Some happened"))
+    match status_code {
+        StatusCode::OK => Ok(format!("{url} (Ok)")),
+        StatusCode::MULTIPLE_CHOICES | StatusCode::MOVED_PERMANENTLY => {
+            Ok(format!("{url} (Redirect)"))
+        }
+        _ => Err(format!(
+            "Error checking URL: {url} (status code: {status_code})"
+        )),
     }
 }
