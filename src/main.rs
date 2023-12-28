@@ -39,16 +39,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let mut count = 0;
+    let mut error_count = 0;
 
     for url in valid_urls {
-        let message = checker(url).await?;
-        writer.write_all(format!("{message} \n").as_bytes())?;
-        count += 1;
+        let message = checker(url).await;
+
+        match message {
+            Ok(message) => {
+                writer.write_all(format!("{message} \n").as_bytes())?;
+                count += 1;
+            }
+            Err(_) => {
+                error_count += 1;
+            }
+        }
     }
 
     writer.flush()?;
 
     println!("It is ready, total of correct URLs: {count}");
+    println!("Incorrect or with error urls: {error_count}\n");
     println!("Open file in {}", output_file_path.display());
 
     Ok(())
