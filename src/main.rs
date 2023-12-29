@@ -83,3 +83,29 @@ async fn checker(url: &str) -> Result<String, String> {
         )),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn make_page_request() {
+        let result = checker("https://www.example.com").await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "https://www.example.com (Ok)");
+    }
+
+    #[test]
+    fn test_is_valid_url_valid() {
+        assert!(is_valid_url("https://www.example.com"));
+        assert!(is_valid_url("http://www.example.org"));
+        assert!(is_valid_url("https://example.net"));
+    }
+
+    #[test]
+    fn test_is_valid_url_invalid() {
+        assert!(!is_valid_url("example.com"));
+        assert!(!is_valid_url("htp://www.example.com"));
+        assert!(!is_valid_url("https//www.example.com"));
+    }
+}
