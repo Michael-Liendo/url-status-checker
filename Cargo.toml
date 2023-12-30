@@ -1,6 +1,9 @@
 [package]
 name = "url-status-checker"
 version = "0.1.0"
+description = "cleans URLs from an input file and verifies their status codes. Cleaned URLs and their status codes are stored in an output file."
+license = "MIT"
+keywords = ["CLI", "URL"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
