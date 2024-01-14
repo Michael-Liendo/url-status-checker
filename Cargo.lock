@@ -1076,7 +1076,7 @@ dependencies = [
 
 [[package]]
 name = "url-status-checker"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "regex",

@@ -1,6 +1,6 @@
 [package]
 name = "url-status-checker"
-version = "0.1.0"
+version = "0.1.1"
 description = "cleans URLs from an input file and verifies their status codes. Cleaned URLs and their status codes are stored in an output file."
 license = "MIT"
 keywords = ["CLI", "URL"]
