@@ -2,27 +2,43 @@ use clap::Parser;
 use regex::Regex;
 use reqwest::StatusCode;
 use std::fs;
-use std::io::{BufWriter, Write};
 use std::path::PathBuf;
 
 /// cleans URLs from an input file and verifies their status codes. Cleaned URLs and their status codes are stored in an output file.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
+    /// Target URL to check.
+    #[arg(short, long, conflicts_with("file"))]
+    target: Option<String>,
     /// File containing the URLs to clean and verify.
-    #[arg(short, long)]
-    file: String,
-
-    /// Output file where valid URLs and their status codes will be saved.
-    #[arg(short, long, default_value_t = String::from("correct_urls_output.txt"))]
-    output_file: String,
+    #[arg(short, long, conflicts_with("target"))]
+    file: Option<String>,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    let input_file_path = PathBuf::from(&args.file);
-    let output_file_path = PathBuf::from(&args.output_file);
+
+    if let Some(target) = args.target {
+        target_checker(target).await?;
+    } else if let Some(file) = args.file {
+        file_checker(file).await?;
+    } else {
+        println!("No target or file provided");
+    }
+
+    Ok(())
+}
+
+async fn target_checker(target: String) -> Result<(), Box<dyn std::error::Error>> {
+    let message = checker(&target).await?;
+    println!("{}", message);
+    Ok(())
+}
+
+async fn file_checker(file: String) -> Result<(), Box<dyn std::error::Error>> {
+    let input_file_path = PathBuf::from(file);
 
     let file_text = fs::read_to_string(&input_file_path)?;
 
@@ -30,13 +46,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .split('\n')
         .filter(|&text| is_valid_url(text))
         .collect();
-
-    let mut writer = BufWriter::new(
-        fs::OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open(&output_file_path)?,
-    );
 
     let mut count = 0;
     let mut error_count = 0;
@@ -46,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         match message {
             Ok(message) => {
-                writer.write_all(format!("{message} \n").as_bytes())?;
+                println!("{}", message);
                 count += 1;
             }
             Err(_) => {
@@ -55,11 +64,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    writer.flush()?;
-
     println!("It is ready, total of correct URLs: {count}");
     println!("Incorrect or with error urls: {error_count}\n");
-    println!("Open file in {}", output_file_path.display());
 
     Ok(())
 }
