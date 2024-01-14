@@ -4,11 +4,13 @@ cleans URLs from an input file and verifies their status codes. Cleaned URLs and
 
 ## Usage
 
-`url-status-checker --file <FILE>`
+`url-status-checker --file <FILE> > output.txt`
 
 ### Options
 
 `-f, --file <FILE>` File containing the URLs to clean and verify
+
+`-t, --target <TARGET>` Target URL to check against
 
 `-o, --output-file <OUTPUT_FILE>` Output file where valid URLs and their status codes will be saved [default: correct_urls_output.
 
